@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.ac.kopo.travel_home.global.mapper.AlertMapper">
+    <select id="getTargetAmountAlert">
+        select MEMBER_ID, CODE_ID, BALANCE, TARGET_AMOUNT
+        from TB_MEMBER_CURRENCY
+        where TARGET_AMOUNT > 0
+          and balance >= TARGET_AMOUNT
+    </select>
+    <select id="getMemberEmail">
+        select EMAIL from TB_MEMBER
+        where MEMBER_ID = #{memberId}
+    </select>
+
+</mapper>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.ac.kopo.travel_home.domain.initDB.mapper.InitMapper">
+    <insert id="insertExchangeRate" parameterType="kr.ac.kopo.travel_home.domain.initDB.vo.ExchangeRate">
+        insert into tb_exchange_rate_history values ('COUNTRY_' || '${cur_unit}', TO_DATE('${date}', 'YYYYMMDD'), '${ttb}', '${tts}', '${deal_bas_r}')
+    </insert>
+
+    <insert id="migrateExchangeRate">
+    <![CDATA[
+        INSERT INTO tb_exchange_rate_history (code_id, time_dt, buy_price, sell_price, deal_bas_r)
+        SELECT
+            code_id,
+            TRUNC(SYSDATE) - 1 AS time_dt,  -- 어제 날짜를 기록
+            TO_CHAR(AVG(TO_NUMBER(buy_price))) AS avg_buy_price,  -- VARCHAR를 숫자로 변환 후 평균 계산
+            TO_CHAR(AVG(TO_NUMBER(sell_price))) AS avg_sell_price,  -- VARCHAR를 숫자로 변환 후 평균 계산
+            TO_CHAR(AVG(TO_NUMBER(deal_bas_r))) AS avg_deal_bas_r  -- VARCHAR를 숫자로 변환 후 평균 계산
+        FROM
+            tb_exchange_rate
+        WHERE
+            time_dt < TRUNC(SYSDATE) - INTERVAL '24' HOUR  -- 24시간 이전 데이터만 선택
+        GROUP BY
+            code_id;
+        ]]>
+    </insert>
+    <delete id="removeProcessedExchangeRateData">
+    <![CDATA[
+        DELETE FROM tb_exchange_rate
+        WHERE
+            time_dt < TRUNC(SYSDATE) - INTERVAL '24' HOUR;
+        ]]>
+    </delete>
+
+
+</mapper>

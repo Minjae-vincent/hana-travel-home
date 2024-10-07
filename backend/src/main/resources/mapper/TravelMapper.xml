@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.ac.kopo.travel_home.domain.user.mapper.TravelMapper">
+    <select id="getTravelRealTime">
+        SELECT COUNT(1) AS num_of_bloggers,
+               c.code_name,
+               c.code
+        FROM tb_travel_record t
+                 JOIN tb_code c ON t.code_id = c.code_id
+        WHERE t.is_completed = 'FALSE'
+          AND c.CLASSIFICATION_CODE_ID = 'COUNTRY'
+        GROUP BY c.code_name, c.code
+        ORDER BY num_of_bloggers DESC
+    </select>
+</mapper>

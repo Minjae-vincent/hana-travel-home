@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.ac.kopo.travel_home.domain.user.mapper.UserMapper">
+    <select id="isUserExist" resultType="boolean">
+        SELECT CASE
+                   WHEN EXISTS (SELECT 1
+                                FROM tb_member
+                                WHERE name = '${name}'
+                                  AND ssn_first_part = '${birth}'
+                                  AND phone_number = '${phoneNumber}') THEN 'TRUE'
+                   ELSE 'FALSE'
+                   END AS record_exists
+        FROM dual
+    </select>
+
+    <select id="isHanaUserExist" resultType="boolean">
+        SELECT CASE
+                   WHEN EXISTS (SELECT 1
+                                FROM tb_hana_member
+                                WHERE ssn_last_part = '${ssnLast}') THEN 'TRUE'
+                   ELSE 'FALSE'
+                   END AS record_exists
+        FROM dual
+    </select>
+
+    <select id="isIdExist" resultType="boolean">
+        SELECT CASE
+                   WHEN EXISTS (SELECT 1
+                                FROM tb_member
+                                WHERE user_id = '${id}') THEN 'TRUE'
+                   ELSE 'FALSE'
+                   END AS record_exists
+        FROM dual
+    </select>
+
+    <insert id="register" parameterType="kr.ac.kopo.travel_home.domain.user.domain.request.RegisterRequest">
+        INSERT INTO tb_member (
+        member_id,
+        code_id,
+        name,
+        ssn_first_part,
+        ssn_last_part,
+        user_id,
+        user_pw,
+        email,
+        phone_number,
+        address,
+        register_dt,
+        modified_dt
+        ) VALUES (
+        #{ssnLast},
+        <if test="gender == 'male'">'GENDER_M'</if>
+        <if test="gender == 'female'">'GENDER_F'</if>,
+        #{name},
+        #{birthDate},
+        #{ssnLast},
+        #{id},
+        #{password},
+        #{email},
+        #{phoneNumber},
+        NULL,
+        SYSDATE,
+        SYSDATE
+        )
+    </insert>
+
+    <select id="isAccountExist" parameterType="String">
+        SELECT CASE
+                   WHEN EXISTS (SELECT 1
+                                FROM tb_member
+                                WHERE user_id = '${id}') THEN 'TRUE'
+                   ELSE 'FALSE'
+                   END AS record_exists
+        FROM dual
+    </select>
+
+    <select id="isCorrectPassword" parameterType="kr.ac.kopo.travel_home.domain.user.domain.request.LoginRequest"
+            resultType="boolean">
+        SELECT CASE
+                   WHEN EXISTS (SELECT 1
+                                FROM tb_member
+                                WHERE user_id = '${id}'
+                                  AND user_pw = '${password}') THEN 'TRUE'
+                   ELSE 'FALSE'
+                   END AS record_exists
+        FROM dual
+    </select>
+
+    <select id="getUser" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.UserDTO">
+        SELECT *
+        FROM tb_member
+        WHERE user_id = #{id}
+          and user_pw = #{password}
+    </select>
+
+    <select id="getUserById" parameterType="String" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.UserDTO">
+        SELECT *
+        FROM tb_member
+        WHERE user_id = #{id}
+    </select>
+
+    <select id="getUserByNamePhoneNumber" parameterType="String"
+            resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.UserDTO">
+        SELECT *
+        FROM tb_member
+        WHERE name = #{name}
+          and phone_number = #{phoneNumber}
+    </select>
+
+    <select id="isTraveling" parameterType="String" resultType="String">
+        SELECT c.code_name
+        FROM tb_travel_record tr
+                 JOIN tb_code c ON tr.code_id = c.code_id
+        WHERE tr.member_id = '${memberId}'
+          AND tr.is_completed = 'FALSE'
+          AND ROWNUM = 1
+
+    </select>
+
+    <select id="getTravelJournals" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.TravelJournals">
+        select travel_record_id, start_dt, end_dt, total_amount_spent, travel_name, (select code from tb_code where code_id = TB_TRAVEL_RECORD.code_id) as code
+        from tb_travel_record
+        where member_id = #{memberId}
+          and is_completed = 'TRUE'
+    </select>
+
+    <select id="getTravelRecord" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.TravelRecord">
+        SELECT ph.*
+        FROM tb_payment_history ph
+                 INNER JOIN payment_record_mapping prm ON ph.payment_history_id = prm.payment_history_id
+        WHERE prm.travel_record_id = #{travelRecordId}
+        order by ph.payment_dt desc
+    </select>
+
+    <select id="getTraveling" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.TravelSpace">
+        SELECT c.code_name,
+               ph.location,
+               ph.lat,
+               ph.lon
+        FROM tb_payment_history ph
+                 JOIN payment_record_mapping prm ON ph.payment_history_id = prm.payment_history_id
+                 JOIN TB_TRAVEL_RECORD tr ON prm.travel_record_id = tr.travel_record_id
+                 JOIN TB_CODE c ON ph.code_id = c.code_id
+        WHERE tr.member_id = #{memberId}
+          AND tr.is_completed = 'FALSE'
+        ORDER BY ph.payment_dt DESC
+            FETCH FIRST 1 ROWS ONLY
+    </select>
+
+    <select id="getTravelRecommendation" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.DestRecommend">
+        SELECT c.code_name        AS codeName,
+               ph.location,
+               ROUND(6371000 * ACOS(
+                       COS((#{lat} * (3.141592653589793 / 180))) * COS((ph.lat * (3.141592653589793 / 180))) *
+                       COS((ph.lon * (3.141592653589793 / 180)) - (#{lon} * (3.141592653589793 / 180))) +
+                       SIN((#{lat} * (3.141592653589793 / 180))) * SIN((ph.lat * (3.141592653589793 / 180)))
+                               )) AS distance,
+               ph.category,
+               ph.lat,
+               ph.lon
+        FROM tb_payment_history ph
+                 JOIN tb_code c ON ph.code_id = c.code_id
+                 JOIN (SELECT prm.payment_history_id
+                       FROM tb_travel_record tr
+                                JOIN payment_record_mapping prm ON tr.travel_record_id = prm.travel_record_id
+                       WHERE tr.member_id != #{memberId}
+                         AND tr.is_completed = 'TRUE') completed_records
+                      ON ph.payment_history_id = completed_records.payment_history_id
+        WHERE SDO_WITHIN_DISTANCE(
+                      SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(ph.lon, ph.lat, NULL), NULL, NULL),
+                      SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(#{lon}, #{lat}, NULL), NULL, NULL),
+                      'distance=20000 unit=METER'
+              ) = 'TRUE'
+        ORDER BY distance
+    </select>
+
+    <select id="getTargetTotalTravelNum" resultType="int">
+        SELECT COUNT(*) AS total_num
+        FROM tb_member m
+                 JOIN
+             tb_travel_record tr ON m.member_id = tr.member_id
+        WHERE m.code_id = #{gender}
+          AND m.member_id != #{memberId}
+          AND EXTRACT (YEAR FROM SYSDATE) -
+            CASE
+            WHEN SUBSTR(m.ssn_first_part
+            , 1
+            , 2)
+            > TO_CHAR(SYSDATE
+            , 'YY')
+            THEN 1900 + TO_NUMBER(SUBSTR(m.ssn_first_part
+            , 1
+            , 2))
+            ELSE 2000 + TO_NUMBER(SUBSTR(m.ssn_first_part
+            , 1
+            , 2))
+        END
+        BETWEEN
+        #{ageRange}
+        AND
+        #{ageRange}
+        +
+        9
+        AND
+        EXTRACT
+        (
+        MONTH
+        FROM
+        tr
+        .
+        start_dt
+        )
+        =
+        #{month}
+    </select>
+
+    <select id="getTargetCountryList" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.TravelLocation">
+        SELECT c.CODE_NAME AS code_name, c.code as code, COUNT(*) AS total_num
+        FROM tb_travel_record t
+                 JOIN tb_member m ON t.member_id = m.member_id
+                 JOIN tb_code c ON t.code_id = c.code_id
+        WHERE m.code_id = #{gender}
+          AND m.member_id != #{memberId}
+          AND EXTRACT (YEAR FROM SYSDATE) -
+            CASE
+            WHEN SUBSTR(m.ssn_first_part
+            , 1
+            , 2)
+            > TO_CHAR(SYSDATE
+            , 'YY')
+            THEN 1900 + TO_NUMBER(SUBSTR(m.ssn_first_part
+            , 1
+            , 2))
+            ELSE 2000 + TO_NUMBER(SUBSTR(m.ssn_first_part
+            , 1
+            , 2))
+        END
+        BETWEEN
+        #{ageRange}
+        AND
+        #{ageRange}
+        +
+        9
+        AND
+        EXTRACT
+        (
+        MONTH
+        FROM
+        t
+        .
+        start_dt
+        )
+        =
+        #{month}
+        GROUP
+        BY
+        c
+        .
+        CODE_NAME,
+        c
+        .
+        code
+        ORDER
+        BY
+        COUNT
+        (
+        *
+        )
+        DESC
+        FETCH
+        FIRST
+        3
+        ROWS
+        ONLY
+    </select>
+
+    <select id="getTravelHistory">
+        SELECT c.code, c.code_name
+        FROM TB_TRAVEL_RECORD t
+                 JOIN TB_CODE c ON t.code_id = c.code_id
+        WHERE t.MEMBER_ID = #{memberId}
+          AND t.is_completed = 'TRUE'
+    </select>
+
+    <select id="getTravelRecommendCustom"
+            resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.TravelCustomRecommend">
+        WITH member_info AS (SELECT m.code_id AS gender_code,
+                                    EXTRACT(YEAR FROM SYSDATE) -
+                                    CASE
+                                        WHEN TO_NUMBER(SUBSTR(m.ssn_first_part, 1, 2)) >
+                                             TO_NUMBER(TO_CHAR(SYSDATE, 'YY'))
+                                            THEN 1900 + TO_NUMBER(SUBSTR(m.ssn_first_part, 1, 2))
+                                        ELSE 2000 + TO_NUMBER(SUBSTR(m.ssn_first_part, 1, 2))
+                                        END   AS age
+                             FROM tb_member m
+                             WHERE m.member_id = #{memberId})
+        SELECT c.CODE_NAME               AS code_name,
+               c.code                    AS code,
+               AVG(t.TOTAL_AMOUNT_SPENT) AS average_spending,
+               (SELECT DEAL_BAS_R
+                FROM (SELECT DEAL_BAS_R
+                      FROM TB_EXCHANGE_RATE
+                      WHERE code_id = c.code_id
+                      ORDER BY TIME_DT DESC)
+                WHERE ROWNUM = 1)        AS exchange_rate
+        FROM tb_travel_record t
+                 JOIN tb_member m ON t.member_id = m.member_id
+                 JOIN tb_code c ON t.code_id = c.code_id
+                 JOIN member_info mi ON 1 = 1
+        WHERE m.member_id != 'eeb4920ccdf4dc9e97a1a9aa35d304872540e6e6c70f752b7ce26bb1e4a47a6e'
+  AND m.code_id = mi.gender_code
+  AND t.IS_COMPLETED = 'TRUE'
+  AND (
+    EXTRACT(YEAR FROM SYSDATE) -
+    CASE
+        WHEN TO_NUMBER(SUBSTR(m.ssn_first_part, 1, 2)) > TO_NUMBER(TO_CHAR(SYSDATE, 'YY'))
+            THEN 1900 + TO_NUMBER(SUBSTR(m.ssn_first_part, 1, 2))
+        ELSE 2000 + TO_NUMBER(SUBSTR(m.ssn_first_part, 1, 2))
+        END
+    ) BETWEEN (mi.age - MOD(mi.age, 10)) AND (mi.age - MOD(mi.age, 10) + 9)
+        GROUP BY c.CODE_NAME, c.code, c.code_id
+    </select>
+
+    <select id="getAccountInfo">
+        select DESCRIPTION    as name,
+               ACCOUNT_NUMBER as account_number,
+               BALANCE
+        from TB_ACCOUNT
+        where MEMBER_ID = #{memberId}
+    </select>
+
+    <select id="getTravelPossession">
+        SELECT c.CODE      AS code,
+               c.CODE_NAME AS code_name,
+               m.BALANCE,
+               m.TARGET_AMOUNT
+        FROM TB_MEMBER_CURRENCY m
+                 JOIN TB_CODE c ON c.CODE_ID = m.CODE_ID
+        WHERE m.MEMBER_ID = #{memberId}
+    </select>
+
+    <select id="getPaymentHistory">
+        SELECT TO_CHAR(ph.PAYMENT_DT, 'YYYY-MM-DD')              AS payment_date,
+               TO_CHAR(ph.PAYMENT_DT, 'YYYY-MM-DD"T"HH24:MI:SS') AS payment_timestamp,
+               ph.LOCATION                                       AS store,
+               ph.PAYMENT_AMOUNT                                 AS amount,
+               ph.LAT                                            AS lat,
+               ph.LON                                            AS lng
+        FROM TB_PAYMENT_HISTORY ph
+                 JOIN TB_TRAVEL_LOG tl ON ph.TRAVEL_LOG_ID = tl.TRAVEL_LOG_ID
+                 JOIN TB_ACCOUNT a ON tl.ACCOUNT_ID = a.ACCOUNT_ID
+                 JOIN TB_CODE c ON ph.CODE_ID = c.CODE_ID
+        WHERE a.MEMBER_ID = #{memberId}
+          AND c.CODE = #{code}
+        ORDER BY ph.PAYMENT_DT DESC
+    </select>
+
+    <update id="chargePossession">
+        update TB_MEMBER_CURRENCY
+        set BALANCE = BALANCE + #{amount}
+        where MEMBER_ID = #{memberId}
+          and CODE_ID = (select CODE_ID from TB_CODE where CODE = #{code})
+    </update>
+
+    <update id="withdraw">
+        update TB_ACCOUNT
+        set BALANCE = BALANCE - #{amount}
+        where MEMBER_ID = #{memberId}
+    </update>
+
+    <update id="setTargetAmount">
+        update TB_MEMBER_CURRENCY
+        set TARGET_AMOUNT = #{targetAmount}
+        where MEMBER_ID = #{memberId}
+          and CODE_ID = (select code_id from tb_Code where code = #{code})
+    </update>
+
+    <select id="getTravelTargetAmount">
+        SELECT case when TARGET_AMOUNT is null then 0 else TARGET_AMOUNT end as target_amount
+        FROM TB_MEMBER_CURRENCY
+        WHERE MEMBER_ID = #{memberId}
+          AND CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+    </select>
+
+    <select id="getExchangeRateAlertInfo">
+        select ALERT_UP_FLAG, ALERT_UP_AMOUNT, ALERT_DOWN_FLAG, ALERT_DOWN_AMOUNT
+        from TB_MEMBER_CURRENCY
+        where MEMBER_ID = #{memberId}
+          and CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = #{code})
+    </select>
+
+    <update id="setExchangeRateAlertUpper">
+        UPDATE
+            TB_MEMBER_CURRENCY
+        SET ALERT_UP_FLAG = #{flag}, ALERT_UP_AMOUNT = #{targetCurrency}
+        WHERE MEMBER_ID = #{memberId}
+          AND CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = #{code})
+    </update>
+
+    <update id="setExchangeRateAlertLower">
+        UPDATE
+            TB_MEMBER_CURRENCY
+        SET ALERT_DOWN_FLAG = #{flag}, ALERT_DOWN_AMOUNT = #{targetCurrency}
+        WHERE MEMBER_ID = #{memberId}
+          AND CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = #{code})
+    </update>
+
+    <update id="setAutoBuy">
+        UPDATE
+            TB_MEMBER_CURRENCY
+        SET AUTO_BUY_FLAG = '${flag}',
+            AUTO_BUY_AMOUNT = ${rechargeAmount},
+            AUTO_BUY_EXCHANGE_RATE = ${exchangeRate},
+            AUTO_BUY_CYCLE = '${period}'
+        WHERE MEMBER_ID = '${memberId}'
+          AND CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = '${code}')
+    </update>
+
+    <select id="getAutoBuyInfo">
+        SELECT AUTO_BUY_FLAG as enable_auto, AUTO_BUY_AMOUNT as recharge_amount, AUTO_BUY_EXCHANGE_RATE as exchange_rate, AUTO_BUY_CYCLE as period
+        FROM TB_MEMBER_CURRENCY
+        WHERE MEMBER_ID = #{memberId}
+          AND CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = #{code})
+    </select>
+
+    <update id="setAutoRefund">
+        UPDATE
+            TB_MEMBER_CURRENCY
+        SET AUTO_SELL_FLAG = '${flag}',
+            AUTO_SELL_AMOUNT = '${refundAmount}',
+            AUTO_SELL_EXCHANGE_RATE = ${exchangeRate},
+            AUTO_SELL_CYCLE = '${period}'
+        WHERE MEMBER_ID = '${memberId}'
+          AND CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = '${code}')
+    </update>
+
+    <select id="getAutoRefundInfo">
+        SELECT AUTO_SELL_FLAG as enable_auto, AUTO_SELL_AMOUNT as refund_amount, AUTO_SELL_EXCHANGE_RATE as exchange_rate, AUTO_SELL_CYCLE as period
+        FROM TB_MEMBER_CURRENCY
+        WHERE MEMBER_ID = #{memberId}
+          AND CODE_ID = (SELECT CODE_ID FROM tb_code WHERE CODE = #{code})
+    </select>
+
+    <select id="getMostSpent">
+        SELECT c.CODE,
+               c.CODE_NAME,
+               tr.TOTAL_AMOUNT_SPENT
+        FROM TB_TRAVEL_RECORD tr
+                 JOIN TB_CODE c ON c.CODE_ID = tr.CODE_ID
+                 JOIN TB_MEMBER m ON m.MEMBER_ID = tr.MEMBER_ID
+        WHERE m.MEMBER_ID = #{memberId}
+          AND tr.IS_COMPLETED = 'TRUE'
+        ORDER BY tr.TOTAL_AMOUNT_SPENT DESC
+            FETCH FIRST 3 ROWS ONLY
+    </select>
+
+    <select id="getCategoryStatics">
+        SELECT ph.CATEGORY,
+               SUM(ph.PAYMENT_AMOUNT_KR) AS TOTAL_AMOUNT_SPENT
+        FROM TB_PAYMENT_HISTORY ph
+                 JOIN TB_TRAVEL_LOG tl ON ph.TRAVEL_LOG_ID = tl.TRAVEL_LOG_ID
+                 JOIN TB_ACCOUNT a ON tl.ACCOUNT_ID = a.ACCOUNT_ID
+        WHERE a.ACCOUNT_ID = (SELECT MIN(a2.ACCOUNT_ID)
+                              FROM TB_ACCOUNT a2
+                              WHERE a2.MEMBER_ID = #{memberId})
+          AND tl.TRAVEL_LOG_ID = (SELECT MIN(tl2.TRAVEL_LOG_ID)
+                                  FROM TB_TRAVEL_LOG tl2
+                                  WHERE tl2.ACCOUNT_ID = a.ACCOUNT_ID)
+        GROUP BY ph.CATEGORY
+        ORDER BY TOTAL_AMOUNT_SPENT DESC
+    </select>
+
+    <select id="getCompareStatics">
+        SELECT AVG(CASE WHEN MEMBER_ID = #{memberId} THEN TOTAL_AMOUNT_SPENT END)  AS my_avg,
+               AVG(CASE WHEN MEMBER_ID != #{memberId} THEN TOTAL_AMOUNT_SPENT END) AS other_avg
+        FROM TB_TRAVEL_RECORD
+        WHERE IS_COMPLETED = 'TRUE'
+    </select>
+
+    <select id="getUserInfoBrief">
+        select (select count(1)
+                from TB_TRAVEL_RECORD
+                where MEMBER_ID = #{memberId}
+                  and IS_COMPLETED = 'TRUE')                         as num_of_history,
+
+               (select count(1)
+                from TB_MEMBER_CURRENCY
+                where member_id = #{memberId}
+                  and balance > 0)                                   as num_of_foreign_currency,
+               (select count(1)
+                from TB_MEMBER_CURRENCY
+                where MEMBER_ID = #{memberId}
+                  and (ALERT_UP_FLAG = 'Y' or ALERT_DOWN_FLAG = 'Y'
+                    ))                                               as num_of_notifications,
+               (select count(1)
+                from tb_member_currency
+                where member_id = #{memberId}
+                  and (AUTO_BUY_FLAG = 'Y' or AUTO_SELL_FLAG = 'Y')) as num_of_auto_purchase_refund
+        from dual
+    </select>
+
+    <select id="getEmailFromId">
+        select EMAIL from TB_MEMBER
+        where MEMBER_ID = #{memberId}
+    </select>
+
+    <select id="getCurrencyRemained">
+        select balance
+        from TB_MEMBER_CURRENCY
+        where MEMBER_ID = #{memberId}
+          and CODE_ID = (select CODE_ID from tb_code where CODE = #{code})
+    </select>
+
+
+</mapper>

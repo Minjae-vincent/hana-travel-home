@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.ac.kopo.travel_home.domain.user.mapper.ExchangeRateMapper">
+
+    <!-- 환율 변동률을 가져오는 쿼리 -->
+    <select id="getExchangeRateFluctuation" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.Fluctuation">
+        WITH last_3_months_data AS (SELECT code_id,
+                                           TO_NUMBER(deal_bas_r, '9999.9999') AS deal_bas_r,
+                                           time_dt,
+                                           ROW_NUMBER()                          OVER (PARTITION BY code_id ORDER BY time_dt DESC) AS rn
+                                    FROM TB_EXCHANGE_RATE_HISTORY
+                                    WHERE time_dt >= ADD_MONTHS(SYSDATE, -3)),
+             aggregated_data AS (SELECT code_id,
+                                        MAX(deal_bas_r)                           AS max_deal_bas_r,
+                                        MIN(deal_bas_r)                           AS min_deal_bas_r,
+                                        MAX(CASE WHEN rn = 1 THEN deal_bas_r END) AS current_deal_bas_r
+                                 FROM last_3_months_data
+                                 GROUP BY code_id),
+             change_rate_data AS (SELECT code_id,
+                                         ((max_deal_bas_r - current_deal_bas_r) / current_deal_bas_r) * 100 AS change_rate
+                                  FROM aggregated_data)
+        SELECT c.code_name,
+               c.code,
+               crd.change_rate AS fluctuationRange
+        FROM change_rate_data crd
+                 JOIN tb_code c ON crd.code_id = c.code_id
+        ORDER BY crd.change_rate
+    </select>
+
+    <select id="getNationCode">
+        select CODE_ID from tb_code where CLASSIFICATION_CODE_ID = 'COUNTRY'
+    </select>
+
+    <select id="getCodeFromId">
+        select code from tb_code where code_id = #{codeId}
+    </select>
+
+    <select id="getNameFromId">
+        select code_name from tb_code where code_id = #{codeId}
+    </select>
+
+    <select id="getExchangeRateTime">
+        select FLOOR((CAST(time_dt AS DATE) - TO_DATE('1970-01-01', 'YYYY-MM-DD')) * 86400) AS x, DEAL_BAS_R as y from TB_EXCHANGE_RATE where CODE_ID = #{codeId}
+        order by TIME_DT
+    </select>
+
+    <select id="getExchangeRateMonths">
+        select TO_NUMBER(deal_bas_r, '9999.9999') as deal_bas_r
+        from TB_EXCHANGE_RATE_HISTORY where code_id = #{codeId} and time_dt >= ADD_MONTHS(SYSDATE, -3)
+        order by  deal_bas_r
+    </select>
+
+    <select id="getMostStableNations">
+        WITH country_stability AS (SELECT code_id,
+                                          STDDEV(TO_NUMBER(deal_bas_r, '9999.9999')) AS std_deviation
+                                   FROM TB_EXCHANGE_RATE_HISTORY
+                                   WHERE time_dt >= ADD_MONTHS(SYSDATE, -3)
+                                   GROUP BY code_id)
+-- 안정성이 낮은 하위 5개 국가
+        SELECT code_id
+        FROM country_stability
+        ORDER BY std_deviation
+            FETCH FIRST 5 ROWS ONLY
+    </select>
+
+    <select id="getExchangeRatePerMonth">
+
+        WITH tmp as (SELECT TO_CHAR(TIME_DT, 'MM') AS month, AVG (TO_NUMBER(DEAL_BAS_R, '9999.9999')) AS rate
+        FROM
+            TB_EXCHANGE_RATE_HISTORY
+        WHERE
+            CODE_ID = #{codeId}
+          and time_dt
+            > trunc(sysdate) - 365
+        GROUP BY
+            TO_CHAR(TIME_DT, 'MM')
+        ORDER BY
+            month
+            )
+        select rate
+        from tmp
+    </select>
+
+    <select id="getExchangeRateNow" resultType="kr.ac.kopo.travel_home.domain.user.domain.dto.ExchangeRateCompare">
+        SELECT (SELECT CODE_NAME
+                FROM TB_CODE
+                WHERE CODE_ID = (SELECT CODE_ID FROM tb_code WHERE code = #{code})) AS code_name,
+               #{code}                                                              AS code,
+               (SELECT DEAL_BAS_R
+                FROM TB_EXCHANGE_RATE
+                WHERE CODE_ID = (SELECT CODE_ID FROM tb_code WHERE code = #{code})
+                ORDER BY TIME_DT DESC
+                    FETCH FIRST 1 ROW ONLY)                                         AS current_rate,
+               (SELECT AVG(TO_NUMBER(DEAL_BAS_R, '9999.9999'))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM tb_code WHERE code = #{code})
+                  AND TIME_DT >= ADD_MONTHS(SYSDATE, -3))                           AS three_month_rate
+        FROM dual
+    </select>
+
+    <select id="getIdFromCode">
+        select code_id from tb_Code
+        where code = #{code}
+    </select>
+
+    <select id="getMinAmountThreeMonth">
+        SELECT MIN(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', ''))) AS MAX_DEAL_BAS_R
+        FROM TB_EXCHANGE_RATE_HISTORY
+        WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+          AND TIME_DT >= ADD_MONTHS(SYSDATE, -3)
+    </select>
+    <select id="getMaxAmountThreeMonth">
+        SELECT MAX(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', ''))) AS MAX_DEAL_BAS_R
+        FROM TB_EXCHANGE_RATE_HISTORY
+        WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+          AND TIME_DT >= ADD_MONTHS(SYSDATE, -3)
+    </select>
+
+    <select id="getAutoBuy">
+        SELECT (SELECT MIN(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', '')))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                  AND TIME_DT >= ADD_MONTHS(SYSDATE, -3)) AS min_exchange_rate_3m,
+
+               (SELECT MIN(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', '')))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                  AND TIME_DT >= ADD_MONTHS(SYSDATE, -1)) AS min_exchange_rate_1m,
+
+               (SELECT MIN(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', '')))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                  AND TIME_DT >= SYSDATE - 7)             AS min_exchange_rate_1w,
+
+               (SELECT TO_NUMBER(REPLACE(DEAL_BAS_R, ',', ''))
+                FROM (SELECT DEAL_BAS_R
+                      FROM TB_EXCHANGE_RATE
+                      WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                      ORDER BY TIME_DT DESC)
+                WHERE ROWNUM = 1)                         AS current_exchange_rate
+        FROM dual
+    </select>
+
+    <select id="getAutoRefund">
+        SELECT (SELECT MAX(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', '')))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                  AND TIME_DT >= ADD_MONTHS(SYSDATE, -3)) AS min_exchange_rate_3m,
+
+               (SELECT MAX(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', '')))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                  AND TIME_DT >= ADD_MONTHS(SYSDATE, -1)) AS min_exchange_rate_1m,
+
+               (SELECT MAX(TO_NUMBER(REPLACE(DEAL_BAS_R, ',', '')))
+                FROM TB_EXCHANGE_RATE_HISTORY
+                WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                  AND TIME_DT >= SYSDATE - 7)             AS min_exchange_rate_1w,
+
+               (SELECT TO_NUMBER(REPLACE(DEAL_BAS_R, ',', ''))
+                FROM (SELECT DEAL_BAS_R
+                      FROM TB_EXCHANGE_RATE
+                      WHERE CODE_ID = (SELECT CODE_ID FROM TB_CODE WHERE CODE = #{code})
+                      ORDER BY TIME_DT DESC)
+                WHERE ROWNUM = 1)                         AS current_exchange_rate
+        FROM dual
+    </select>
+
+    <select id="getNameFromCode">
+        select code_name from tb_code where code = #{code}
+    </select>
+
+    <select id="getCodeFromCodeName">
+        select code
+        from tb_code
+        where code_name = #{codeName}
+    </select>
+
+
+</mapper>
