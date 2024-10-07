@@ -1,0 +1,162 @@
+/* registerInfoView.css */
+
+@font-face {
+  font-family: 'Hana2-Bold';
+  src: url('@/assets/fonts/Hana2-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hana2-Light';
+  src: url('@/assets/fonts/Hana2-Light.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.spacer-header {
+  height: 103px;
+}
+
+.spacer-footer {
+  height: 70px;
+}
+
+.main-content {
+  padding-top: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.content {
+  text-align: center;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  font-family: 'Hana2-Bold', sans-serif;
+}
+
+.description-wrapper {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.description {
+  margin: 0;
+  font-size: 18px;
+  font-family: 'Hana2-Light', sans-serif;
+  width: 750px;
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.divider {
+  width: 750px;
+  margin-top: 60px;
+  margin-bottom: 55px;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+.form-container {
+  width: 750px;
+  text-align: left;
+}
+
+input-container {
+  width: 750px;
+  text-align: left;
+}
+
+.form-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.form-group.full-width {
+  width: 100%;
+  display: flex;
+}
+
+.form-group.id-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-input {
+  width: 49%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: #f9f9f9;
+}
+
+.form-input.full-width {
+  width: 100%;
+}
+
+.form-input[readonly] {
+  background-color: #e9e9e9;
+}
+
+.form-group.id-group .form-input {
+  width: calc(100% - 120px);
+}
+
+.check-button {
+  width: 100px;
+  padding: 10px;
+  background-color: transparent;
+  border: 1px solid #03ac8e;
+  border-radius: 21px;
+  font-weight: bold;
+  color: #000;
+  cursor: pointer;
+  font-family: 'Hana2-Bold', sans-serif;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 15px 0;
+  background-color: transparent;
+  border: 1px solid #03ac8e;
+  border-radius: 21px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  cursor: pointer;
+  margin-top: 20px;
+  font-family: 'Hana2-Bold', sans-serif;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.submit-button:disabled {
+  background-color: #e0e0e0;
+  color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.check-button:hover,
+.submit-button:hover {
+  background-color: #03ac8e;
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
