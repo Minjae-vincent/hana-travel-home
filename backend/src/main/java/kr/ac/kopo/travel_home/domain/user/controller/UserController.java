@@ -116,35 +116,7 @@ public class UserController {
         return APIResponse.onSuccess(userService.getTravelRecommendationList(month, ageRange, gender, userId));
     }
 
-//    환율 하우스
-
-    @GetMapping("/exchange-rate/fluctuation")
-    public APIResponse<?> getExchangeRateFluctuation() {
-        return APIResponse.onSuccess(exchangeRateService.getExchangeRateFluctuation());
-    }
-
-    @GetMapping("/exchange-rate/real-time")
-    public APIResponse<?> getExchangeRateRealTime() {
-        return APIResponse.onSuccess(exchangeRateService.getExchangeRateRealTime());
-    }
-
-    @GetMapping("/exchange-rate/now/{code}")
-    public APIResponse<?> getExchangeRateNow(@PathVariable("code") String code) {
-        return APIResponse.onSuccess(exchangeRateService.getCurrentExchangeRate(code));
-    }
-
-    @GetMapping("/exchange-rate/stability")
-    public APIResponse<?> getExchangeRateMonths() {
-        return APIResponse.onSuccess(exchangeRateService.getExchangeRateMonths());
-    }
-
-    @GetMapping("/exchange-rate/seasonal")
-    public APIResponse<?> getExchangeRateSeasonal() {
-        return APIResponse.onSuccess(exchangeRateService.getExchangeRateSeasonal());
-    }
-
 //    여행 하우스
-
     @GetMapping("/travel/real-time")
     public APIResponse<?> getTravelRealTime() {
         return APIResponse.onSuccess(travelService.getTravelRealTime());
