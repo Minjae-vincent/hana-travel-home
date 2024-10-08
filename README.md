@@ -92,17 +92,12 @@
 
 | 구분      | 내용                                                                                             | 비고                               |
 | --------- | ------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| 이름      | 김민재                                                                                           |                                    |
+| 이름      | 김민재                                                                                           |                                   |
 | 연락처    | 이메일                                                                                           | alswo9853@gmail.com                |
 | 학력 사항 | 한양대학교 ERICA 소프트웨어학부 졸업                                                             | 2024.02.16                         |
-| Skill Set | Language                                                                                         | C, Javascript, Java, Python        |
-|           | Framework & Library                                                                              | Spring, Mybatis, React             |
-|           | Database                                                                                         | Oracle, MySQL                      |
-|           | Etc                                                                                              | Git, Oracle Cloud, AWS, Azure      |
-| 자격증    | SQLD (SQL개발자)                                                                                 | 2024.04.05                         |
-|           | 정보처리기사                                                                                     | 2023.11.15                         |
-|           | 리눅스마스터 2급 (1차)                                                                           | 2023.11.09                         |
-| 수상경력  | 숭실대학교 공학교육혁신센터 캡스톤디자인 경진대회 동상                                           | 숭실대학교 (2023.09.19)            |
-|           | 한국IT정책경영학회 학술대회 우수논문 장려상                                                      | 한국IT정책경영학회 (2018.12.12)    |
+| Skill Set | Language                                                                                         | C, Javascript, Java, Python, Kotlin        |
+|           | Framework & Library                                                                              | Spring, Mybatis, VuejS, JPA             |
+|           | Database                                                                                         | Oracle, MySQL, PostgreSQL, MSSQL, Redis      |
+|           | Etc                                                                                              | Git, Oracle Cloud, AWS, Azure, GCP, Docker      |
+|     자격증      | 정보처리기사                                                                                     | 2024.09.10                         |
 | 교육이력  | 하나금융티아이 채용연계형 교육 1200시간<br/>(한국폴리텍대학교 광명융합기술교육원 - 데이터분석과) | 2024.03.04 ~ 2024.10.18 (1200시간) |
-| 어학능력  | TOEIC Speaking Intermediate High                                                                 | 2023.11.22                         |
