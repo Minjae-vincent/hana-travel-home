@@ -84,7 +84,8 @@
 ### 3-3. Spring Security & Spring Cloud OpenFeign
 ![8  부록 - Backend architechture](https://github.com/user-attachments/assets/06a7d719-e6be-4920-873e-8932fa0a8f3b)
 
-### 3. 발표 ppt
+### 3. 발표 자료
+[하나금융티아이_교육생_김민재.pdf](https://github.com/user-attachments/files/17358134/_._.pdf)
 
 ### 4. 시연 동영상
 
