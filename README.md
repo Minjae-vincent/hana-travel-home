@@ -92,7 +92,7 @@
 
 ### 4. 시연 동영상
 
-<a href=""><img src="img/main.png"></a><br/>
+<a href=""><img src="asset/main.png"></a><br/>
 
 # 4. 본인 소개
 
